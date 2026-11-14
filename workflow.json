@@ -1,0 +1,331 @@
+{
+  "name": "Github AI agent management system",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "id": "731c0203-afca-43be-8997-a9121292711b",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b58c3842-3eab-4d84-8779-34d5e6e9226e",
+              "name": "issue_number",
+              "value": "1",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [144, -32],
+      "id": "eddab07f-b552-41e7-9cc1-2c60e1a586d8",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [288, 96],
+      "id": "53c32380-c520-4cb0-a305-704bf480e32b",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "YOUR_GITHUB_USERNAME",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "YOUR_TARGET_REPOSITORY",
+          "mode": "name"
+        },
+        "issueNumber": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Issue_Number', ``, 'number') }}"
+      },
+      "type": "n8n-nodes-base.githubTool",
+      "typeVersion": 1.1,
+      "position": [592, 208],
+      "id": "f5811e9d-3447-4e67-9283-551f54a426ec",
+      "name": "Get an issue in GitHub"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "value": "YOUR_GITHUB_USERNAME",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "YOUR_TARGET_REPOSITORY",
+          "mode": "name"
+        },
+        "issueNumber": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Issue_Number', ``, 'number') }}",
+        "editFields": {
+          "labels": [
+            {
+              "label": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('labels0_Label', ``, 'string') }}"
+            },
+            {
+              "label": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('labels1_Label', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.githubTool",
+      "typeVersion": 1.1,
+      "position": [688, 48],
+      "id": "2375e0a9-9e78-4bca-a7ed-b4ae9f17c7cb",
+      "name": "Edit an issue in GitHub"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=A new GitHub issue has been opened.\n\nIssue number: {{ $('Github Trigger').first().json.body.issue.number }}\nTitle: {{ $('Github Trigger').first().json.body.issue.title }}\nDescription: {{ $('Github Trigger').first().json.body.issue.body }}",
+        "options": {
+          "systemMessage": "You are an AI GitHub Issue Management Agent.\n\nYour job is to classify new GitHub issues, apply labels, and post one classification comment.\n\nFollow these steps in order:\n\n1. Use the GitHub Get Issue tool to retrieve the issue provided in the user message. Never modify a different issue.\n2. Use the HTTP Request tool with GET to retrieve the existing comments for that same issue. Use the issue's comments_url.\n3. Check whether an existing comment already contains all three fields: Category:, Priority:, and Reason:.\n4. If a classification comment already exists, do not create another comment. Check that the appropriate labels are applied, then stop.\n5. If no classification comment exists, analyze the issue title and description.\n6. Choose exactly one category: bug, enhancement, or documentation.\n7. Choose exactly one priority: priority: low, priority: medium, or priority: high. Use the exact existing GitHub label names.\n8. Use the GitHub Edit Issue tool to apply the category and priority labels. Do not change the issue title, description, or state. Do not remove unrelated labels.\n9. After the labels are updated successfully, use the GitHub Create Comment tool to post exactly one comment in this format:\nCategory: <category>\nPriority: <Low, Medium, or High>\nReason: <short explanation>\n10. Only report that a comment was posted after the Create Comment tool confirms success.\n\nIf retrieving comments fails or returns unusable results, do not create a comment. Report the problem.\nNever post more than one classification comment for the same issue."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [432, -64],
+      "id": "a2924515-dbb6-48df-87ac-f441b34517d4",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "owner": {
+          "__rl": true,
+          "value": "YOUR_GITHUB_USERNAME",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "YOUR_TARGET_REPOSITORY",
+          "mode": "name"
+        },
+        "events": ["issues"],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.githubTrigger",
+      "typeVersion": 1,
+      "position": [-80, -144],
+      "id": "6f748d17-36b1-4ee4-bab6-cc1ca86012ec",
+      "name": "Github Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "82926684-d665-4ecc-9aff-ecfc1e89955f",
+              "leftValue": "={{ $json.body.action }}",
+              "rightValue": "opened",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [96, 224],
+      "id": "75bf1d65-4e8c-445f-ae97-90b3c821bf58",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "createComment",
+        "owner": {
+          "__rl": true,
+          "value": "YOUR_GITHUB_USERNAME",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "YOUR_TARGET_REPOSITORY",
+          "mode": "name"
+        },
+        "issueNumber": "={{ $('Github Trigger').first().json.body.issue.number }}",
+        "body": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Body', `Write a short, professional comment explaining the issue category, priority, and reason. Do not claim the issue is fixed.`, 'string') }}"
+      },
+      "type": "n8n-nodes-base.githubTool",
+      "typeVersion": 1.1,
+      "position": [464, 208],
+      "id": "7cec9915-dacd-4b78-9095-ceb4d3c56c69",
+      "name": "Create a comment on an issue in GitHub"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Read existing comments on a GitHub issue to check whether an AI classification comment has already been posted. Use this tool before creating a new comment.",
+        "url": "={{ $('Github Trigger').first().json.body.issue.comments_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [432, 96],
+      "id": "6d69f729-ce59-4931-9439-cbf52d048b27",
+      "name": "HTTP Request",
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Github Trigger').first().json.body.issue.comments_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [320, 336],
+      "id": "d8efbd8f-2a2c-4589-a950-9bb3e9761ec6",
+      "name": "HTTP Request1",
+      "alwaysOutputData": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [[]]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get an issue in GitHub": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit an issue in GitHub": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Github Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [[]]
+    },
+    "Create a comment on an issue in GitHub": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": [],
+  "tags": []
+}
